@@ -113,7 +113,7 @@ class Agent:
         self.states = []
         self.actions = ["down", "up", "right", "left"]
         self.State = State()
-        self.lr = 0.2
+        self.lr = 0.8
         self.exp_rate = 0.9
 
         # initial state reward
