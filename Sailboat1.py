@@ -42,9 +42,9 @@ fin_j = int(np.argwhere(lon==lon_fin))
 # global variables
 BOARD_ROWS = len(wind)
 BOARD_COLS = len(wind[0])
-WIN_STATE = (fin_i, fin_j)
+WIN_LOC = (fin_i, fin_j)
 #LOSE_STATE = (1, 3)
-START = (start_i, start_j)
+START = (start_i, start_j, wind[start_i][start_j])
 DETERMINISTIC = True
 
 class State:
@@ -53,15 +53,18 @@ class State:
         self.state = state
         self.isEnd = False
         self.determine = DETERMINISTIC
+        self.reward = 100000
+        self.time = 0
 
     def giveReward(self):
-        if self.state == WIN_STATE:
-            return 1000
+        self.time = self.time - (1 / self.state[2] * 0.25)
+        if (self.state[0], self.state[1]) == WIN_LOC:
+            return self.reward
         else:
             return 0
 
     def isEndFunc(self):
-        if (self.state == WIN_STATE):
+        if (self.state[0],self.state[1]) == WIN_LOC:
             self.isEnd = True
 
     def nxtPosition(self, action):
@@ -75,16 +78,17 @@ class State:
         """
         if self.determine:
             if action == "up":
-                nxtState = (self.state[0] - 1, self.state[1])
+                nxtPos = (self.state[0] - 1, self.state[1])
             elif action == "down":
-                nxtState = (self.state[0] + 1, self.state[1])
+                nxtPos = (self.state[0] + 1, self.state[1])
             elif action == "left":
-                nxtState = (self.state[0], self.state[1] - 1)
+                nxtPos = (self.state[0], self.state[1] - 1)
             else:
-                nxtState = (self.state[0], self.state[1] + 1)
+                nxtPos = (self.state[0], self.state[1] + 1)
             # if next state legal
-            if (nxtState[0] >= 0) and (nxtState[0] <= (BOARD_ROWS - 1)):
-                if (nxtState[1] >= 0) and (nxtState[1] <= (BOARD_COLS - 1)):
+            if (nxtPos[0] >= 0) and (nxtPos[0] <= (BOARD_ROWS - 1)):
+                if (nxtPos[1] >= 0) and (nxtPos[1] <= (BOARD_COLS - 1)):
+                    nxtState = (nxtPos[0], nxtPos[1], wind[nxtPos[0]][nxtPos[1]])
                     return nxtState
             return self.state
 
@@ -113,19 +117,24 @@ class Agent:
         self.states = []
         self.actions = ["down", "up", "right", "left"]
         self.State = State()
-        self.lr = 0.8
-        self.exp_rate = 0.9
+        self.lr = 0.9
+        self.exp_rate = 0.5
+        self.rounds = None
+        self.windPenalty = 0
+        self.route = []
+        self.record = False
 
         # initial state reward
         self.state_values = {}
         for i in range(BOARD_ROWS):
             for j in range(BOARD_COLS):
-                self.state_values[(i, j)] = 0  # set initial value to 0
+                self.state_values[(i, j, wind[i][j])] = 0  # set initial value to 0
 
     def chooseAction(self):
         # choose action with most expected value
         mx_nxt_reward = 0
         action = ""
+        self.windPenalty = self.windPenalty + (self.State.state[2] - wind.max())
 
         if np.random.uniform(0, 1) <= self.exp_rate:
             action = np.random.choice(self.actions)
@@ -139,6 +148,8 @@ class Agent:
                     mx_nxt_reward = nxt_reward
             if mx_nxt_reward == 0:
                 action = np.random.choice(self.actions)
+        if self.record == True:
+            self.route.append(self.State.state)
         return action
 
     def takeAction(self, action):
@@ -148,13 +159,19 @@ class Agent:
     def reset(self):
         self.states = []
         self.State = State()
+        self.windPenalty = 0
 
     def play(self, rounds=10):
+        self.rounds = rounds
         i = 0
         while i < rounds:
+            print('----------------------------------')
+            print('ROUND: {}'.format(i))
+            print('----------------------------------\n')
             # to the end of game back propagate reward
             if self.State.isEnd:
                 # back propagate
+                #reward = self.State.giveReward() + self.windPenalty
                 reward = self.State.giveReward()
                 # explicitly assign end state to reward values
                 self.state_values[self.State.state] = reward  # this is optional
@@ -162,6 +179,7 @@ class Agent:
                 for s in reversed(self.states):
                     reward = self.state_values[s] + self.lr * (reward - self.state_values[s])
                     self.state_values[s] = round(reward, 3)
+                print(self.State.time)
                 self.reset()
                 i += 1
             else:
@@ -176,6 +194,21 @@ class Agent:
                 print("nxt state", self.State.state)
                 print("---------------------")
 
+    def showRoute(self):
+        print("Showing Route")
+        self.lr = 0
+        self.exp_rate = 0.2
+        self.record = True
+        self.play(1)
+        grid = np.zeros([BOARD_ROWS, BOARD_COLS])
+        for s, route_tuple in enumerate(self.route):
+            i = route_tuple[0]
+            j = route_tuple[1]
+            grid[i][j] = s
+        df = pd.DataFrame(grid)
+        df.to_csv("route.csv", index=False)
+
+
     def showValues(self):
         for i in range(0, BOARD_ROWS):
             print('----------------------------------')
@@ -187,8 +220,8 @@ class Agent:
 
     def saveValues(self):
         df = pd.Series(ag.state_values).reset_index()
-        df.columns = ['i', 'j', 'value']
-        df.to_csv("state_values_50.csv", index=False)
+        df.columns = ['i', 'j', 'wind', 'value']
+        df.to_csv("state_values_lr{}_er{}_r{}.csv".format(self.lr, self.exp_rate, self.rounds), index=False)
         return
 
 
@@ -196,9 +229,12 @@ if __name__ == "__main__":
     ag = Agent()
     print(start_i)
     print(start_j)
-    ag.play(50)
-    print(ag.showValues())
+    ag.play(10)
+    #print(ag.showValues())
     ag.saveValues()
+    print("Values are saved")
+    ag.showRoute()
+    print("Showing route")
 
 
 
