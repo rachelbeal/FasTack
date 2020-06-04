@@ -113,13 +113,16 @@ class State:
 
 class Agent:
 
-    def __init__(self):
+    def __init__(self, lr, exp_rate):
         self.states = []
         self.actions = ["down", "up", "right", "left"]
         self.State = State()
-        self.lr = 0.9
-        self.exp_rate = 0.5
+        self.lr = lr
+        self.trainlr = lr
+        self.exp_rate = exp_rate
+        self.trainexp_rate = exp_rate
         self.rounds = None
+        self.trainingrounds = None
         self.windPenalty = 0
         self.route = []
         self.record = False
@@ -163,6 +166,8 @@ class Agent:
 
     def play(self, rounds=10):
         self.rounds = rounds
+        if rounds > 1:
+            self.trainingrounds = rounds
         i = 0
         while i < rounds:
             print('----------------------------------')
@@ -197,7 +202,7 @@ class Agent:
     def showRoute(self):
         print("Showing Route")
         self.lr = 0
-        self.exp_rate = 0.2
+        self.exp_rate = 0.1
         self.record = True
         self.play(1)
         grid = np.zeros([BOARD_ROWS, BOARD_COLS])
@@ -206,7 +211,7 @@ class Agent:
             j = route_tuple[1]
             grid[i][j] = s
         df = pd.DataFrame(grid)
-        df.to_csv("route.csv", index=False)
+        df.to_csv("route_lr{}_er{}_r{}.csv".format(self.trainlr, self.trainexp_rate, self.trainingrounds), index=False)
 
 
     def showValues(self):
@@ -226,15 +231,19 @@ class Agent:
 
 
 if __name__ == "__main__":
-    ag = Agent()
-    print(start_i)
-    print(start_j)
-    ag.play(10)
-    #print(ag.showValues())
-    ag.saveValues()
-    print("Values are saved")
-    ag.showRoute()
-    print("Showing route")
+    lr_list = [0.9, 0.99, 0.8, 0.7]
+    exp_rate_list = [0.3, 0.4, 0.5, 0.6]
+    for lr in lr_list:
+        for exp_rate in exp_rate_list:
+            ag = Agent(lr, exp_rate)
+            print(start_i)
+            print(start_j)
+            ag.play(50)
+            #print(ag.showValues())
+            ag.saveValues()
+            print("Values are saved")
+            ag.showRoute()
+            print("Showing route")
 
 
 
