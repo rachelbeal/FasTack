@@ -202,7 +202,7 @@ class Agent:
     def showRoute(self):
         print("Showing Route")
         self.lr = 0
-        self.exp_rate = 0.1
+        self.exp_rate = 0.05
         self.record = True
         self.play(1)
         grid = np.zeros([BOARD_ROWS, BOARD_COLS])
@@ -226,19 +226,19 @@ class Agent:
     def saveValues(self):
         df = pd.Series(ag.state_values).reset_index()
         df.columns = ['i', 'j', 'wind', 'value']
-        df.to_csv("state_values_lr{}_er{}_r{}.csv".format(self.lr, self.exp_rate, self.rounds), index=False)
+        df.to_csv("state_values_lr{}_er{}_r{}_te05.csv".format(self.lr, self.exp_rate, self.rounds), index=False)
         return
 
 
 if __name__ == "__main__":
-    lr_list = [0.9, 0.99, 0.8, 0.7]
-    exp_rate_list = [0.3, 0.4, 0.5, 0.6]
+    lr_list = [0.9]
+    exp_rate_list = [0.6]
     for lr in lr_list:
         for exp_rate in exp_rate_list:
             ag = Agent(lr, exp_rate)
             print(start_i)
             print(start_j)
-            ag.play(50)
+            ag.play(2000)
             #print(ag.showValues())
             ag.saveValues()
             print("Values are saved")
