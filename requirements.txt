@@ -4,7 +4,7 @@ matplotlib
 Cython
 h5py
 pandas
-git+https://github.com/matplotlib/basemap.git#egg=basemap
+#git+https://github.com/matplotlib/basemap.git#egg=basemap
 git+https://github.com/Unidata/netcdf4-python#egg=netCDF4
 git+https://github.com/jswhit/pygrib.git#egg=pygrib
 plotly
