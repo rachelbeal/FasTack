@@ -6,9 +6,9 @@ import netCDF4
 import pandas as pd
 
 file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200531/gfs_0p25_1hr_00z')
-raw_lat  = np.array(file.variables['lat'][:])
-raw_lon  = np.array(file.variables['lon'][:])
-raw_wind = np.array(file.variables['gustsfc'][1,:,:])
+raw_lat = np.array(file.variables['lat'][:])
+raw_lon = np.array(file.variables['lon'][:])
+raw_wind = np.array(file.variables['gustsfc'][1, :, :])
 file.close()
 
 min_lat = 0
@@ -27,25 +27,26 @@ max_col = int(lon_to_use[-1])
 lat = raw_lat[lat_to_use].reshape(len(lat_to_use))
 lon = raw_lon[lon_to_use].reshape(len(lon_to_use))
 
-wind = raw_wind[min_row:max_row+1, min_col:max_col+1]
+wind = raw_wind[min_row:max_row + 1, min_col:max_col + 1]
 
 lat_start = 33.75
 lon_start = 241.75
-start_i = int(np.argwhere(lat==lat_start))
-start_j = int(np.argwhere(lon==lon_start))
+start_i = int(np.argwhere(lat == lat_start))
+start_j = int(np.argwhere(lon == lon_start))
 
 lat_fin = 21.25
 lon_fin = 360 - 157.75
-fin_i = int(np.argwhere(lat==lat_fin))
-fin_j = int(np.argwhere(lon==lon_fin))
+fin_i = int(np.argwhere(lat == lat_fin))
+fin_j = int(np.argwhere(lon == lon_fin))
 
 # global variables
 BOARD_ROWS = len(wind)
 BOARD_COLS = len(wind[0])
 WIN_LOC = (fin_i, fin_j)
-#LOSE_STATE = (1, 3)
+# LOSE_STATE = (1, 3)
 START = (start_i, start_j, wind[start_i][start_j])
 DETERMINISTIC = True
+
 
 class State:
     def __init__(self, state=START):
@@ -64,7 +65,7 @@ class State:
             return 0
 
     def isEndFunc(self):
-        if (self.state[0],self.state[1]) == WIN_LOC:
+        if (self.state[0], self.state[1]) == WIN_LOC:
             self.isEnd = True
 
     def nxtPosition(self, action):
@@ -176,7 +177,7 @@ class Agent:
             # to the end of game back propagate reward
             if self.State.isEnd:
                 # back propagate
-                #reward = self.State.giveReward() + self.windPenalty
+                # reward = self.State.giveReward() + self.windPenalty
                 reward = self.State.giveReward()
                 # explicitly assign end state to reward values
                 self.state_values[self.State.state] = reward  # this is optional
@@ -202,7 +203,7 @@ class Agent:
     def showRoute(self):
         print("Showing Route")
         self.lr = 0
-        self.exp_rate = 0.05
+        self.exp_rate = 0.1
         self.record = True
         self.play(1)
         grid = np.zeros([BOARD_ROWS, BOARD_COLS])
@@ -211,8 +212,8 @@ class Agent:
             j = route_tuple[1]
             grid[i][j] = s
         df = pd.DataFrame(grid)
-        df.to_csv("route_lr{}_er{}_r{}.csv".format(self.trainlr, self.trainexp_rate, self.trainingrounds), index=False)
-
+        df.to_csv("./output/route_lr{}_er{}_r{}.csv".format(self.trainlr, self.trainexp_rate, self.trainingrounds),
+                  index=False)
 
     def showValues(self):
         for i in range(0, BOARD_ROWS):
@@ -226,7 +227,8 @@ class Agent:
     def saveValues(self):
         df = pd.Series(ag.state_values).reset_index()
         df.columns = ['i', 'j', 'wind', 'value']
-        df.to_csv("state_values_lr{}_er{}_r{}_te05.csv".format(self.lr, self.exp_rate, self.rounds), index=False)
+        df.to_csv("./output/state_values_lr{}_er{}_r{}_te05.csv".format(self.lr, self.exp_rate, self.rounds),
+                  index=False)
         return
 
 
@@ -238,13 +240,9 @@ if __name__ == "__main__":
             ag = Agent(lr, exp_rate)
             print(start_i)
             print(start_j)
-            ag.play(2000)
-            #print(ag.showValues())
+            ag.play(10)
+            # print(ag.showValues())
             ag.saveValues()
             print("Values are saved")
             ag.showRoute()
             print("Showing route")
-
-
-
-
