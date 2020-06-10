@@ -5,7 +5,7 @@ from mpl_toolkits.basemap import Basemap
 import netCDF4
 import pandas as pd
 
-file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200531/gfs_0p25_1hr_00z')
+file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200608/gfs_0p25_1hr_00z')
 raw_lat = np.array(file.variables['lat'][:])
 raw_lon = np.array(file.variables['lon'][:])
 raw_wind = np.array(file.variables['gustsfc'][1, :, :])
@@ -55,10 +55,8 @@ class State:
         self.isEnd = False
         self.determine = DETERMINISTIC
         self.reward = 100000
-        self.time = 0
 
     def giveReward(self):
-        self.time = self.time - (1 / self.state[2] * 0.25)
         if (self.state[0], self.state[1]) == WIN_LOC:
             return self.reward
         else:
@@ -127,6 +125,9 @@ class Agent:
         self.windPenalty = 0
         self.route = []
         self.record = False
+        self.steps = 0
+        self.time = 0
+        self.best_time = float("inf")
 
         # initial state reward
         self.state_values = {}
@@ -138,7 +139,9 @@ class Agent:
         # choose action with most expected value
         mx_nxt_reward = 0
         action = ""
+        self.steps = self.steps + 1
         self.windPenalty = self.windPenalty + (self.State.state[2] - wind.max())
+        self.time = self.time + (1 / self.State.state[2]) * 0.25
 
         if np.random.uniform(0, 1) <= self.exp_rate:
             action = np.random.choice(self.actions)
@@ -164,6 +167,8 @@ class Agent:
         self.states = []
         self.State = State()
         self.windPenalty = 0
+        self.steps = 0
+        self.time = 0
 
     def play(self, rounds=10):
         self.rounds = rounds
@@ -177,20 +182,26 @@ class Agent:
             # to the end of game back propagate reward
             if self.State.isEnd:
                 # back propagate
-                # reward = self.State.giveReward() + self.windPenalty
-                reward = self.State.giveReward()
+                #reward = self.State.giveReward() + self.windPenalty / 100
+                reward = self.State.giveReward() - min(self.time * 10, self.State.reward - 10)
+                #reward = self.State.giveReward()
                 # explicitly assign end state to reward values
                 self.state_values[self.State.state] = reward  # this is optional
                 print("Game End Reward", reward)
                 for s in reversed(self.states):
                     reward = self.state_values[s] + self.lr * (reward - self.state_values[s])
-                    self.state_values[s] = round(reward, 3)
-                print(self.State.time)
+                    self.state_values[s] = reward
+                self.best_time = min(self.best_time, self.time)
+                print(self.best_time / 24)
+                print(self.steps)
+                print(self.windPenalty)
+                print(self.time / 24)
                 self.reset()
                 i += 1
             else:
                 action = self.chooseAction()
                 # append trace
+                # if self.State.nxtPosition(action) not in self.states:
                 self.states.append(self.State.nxtPosition(action))
                 print("current position {} action {}".format(self.State.state, action))
                 # by taking the action, it reaches the next state
@@ -203,7 +214,7 @@ class Agent:
     def showRoute(self):
         print("Showing Route")
         self.lr = 0
-        self.exp_rate = 0.1
+        self.exp_rate = 0.2
         self.record = True
         self.play(1)
         grid = np.zeros([BOARD_ROWS, BOARD_COLS])
@@ -240,7 +251,7 @@ if __name__ == "__main__":
             ag = Agent(lr, exp_rate)
             print(start_i)
             print(start_j)
-            ag.play(10)
+            ag.play(200)
             # print(ag.showValues())
             ag.saveValues()
             print("Values are saved")
