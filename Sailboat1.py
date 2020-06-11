@@ -5,7 +5,7 @@ from mpl_toolkits.basemap import Basemap
 import netCDF4
 import pandas as pd
 
-file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200608/gfs_0p25_1hr_00z')
+file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200609/gfs_0p25_1hr_00z')
 raw_lat = np.array(file.variables['lat'][:])
 raw_lon = np.array(file.variables['lon'][:])
 raw_wind = np.array(file.variables['gustsfc'][1, :, :])
@@ -38,6 +38,17 @@ lat_fin = 21.25
 lon_fin = 360 - 157.75
 fin_i = int(np.argwhere(lat == lat_fin))
 fin_j = int(np.argwhere(lon == lon_fin))
+
+dead_min_row = 10
+dead_max_row = 120
+dead_min_col = 140
+dead_max_col = 200
+
+dead_wind = wind
+
+dead_wind[dead_min_row:dead_max_row, dead_min_col:dead_max_col] = 0.1
+
+wind = dead_wind
 
 # global variables
 BOARD_ROWS = len(wind)
@@ -140,6 +151,8 @@ class Agent:
         mx_nxt_reward = 0
         action = ""
         self.steps = self.steps + 1
+        if self.steps >= 300000 and self.best_time != float("inf"):
+            self.State.isEnd = True
         self.windPenalty = self.windPenalty + (self.State.state[2] - wind.max())
         self.time = self.time + (1 / self.State.state[2]) * 0.25
 
@@ -251,7 +264,7 @@ if __name__ == "__main__":
             ag = Agent(lr, exp_rate)
             print(start_i)
             print(start_j)
-            ag.play(200)
+            ag.play(10000)
             # print(ag.showValues())
             ag.saveValues()
             print("Values are saved")
