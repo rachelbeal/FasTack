@@ -9,4 +9,4 @@ app.layout = html.Div([
     dcc.Graph(figure=fig, id='sail-routes')
 ])
 
-app.run_server(debug=True, port=8050)
+app.run_server(debug=True, host="0.0.0.0", port=8050)
