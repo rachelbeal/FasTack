@@ -151,8 +151,6 @@ class Agent:
         mx_nxt_reward = 0
         action = ""
         self.steps = self.steps + 1
-        if self.steps >= 20000 and self.best_time != float("inf"):
-            self.State.isEnd = True
         self.windPenalty = self.windPenalty + (self.State.state[2] - wind.max())
         self.time = self.time + (1 / self.State.state[2]) * 0.25
 
@@ -194,6 +192,7 @@ class Agent:
                 # back propagate
                 # reward = self.State.giveReward() + self.windPenalty / 100
                 reward = self.State.giveReward() - min(self.time * 10, self.State.reward - 10)
+                reward = max(0, reward)
                 # reward = self.State.giveReward()
                 # explicitly assign end state to reward values
                 self.state_values[self.State.state] = reward  # this is optional
@@ -222,6 +221,8 @@ class Agent:
                 self.State = self.takeAction(action)
                 # mark is end
                 self.State.isEndFunc()
+                if self.steps >= 20000 and self.best_time != float("inf"):
+                    self.State.isEnd = True
                 if verbose:
                     print("nxt state", self.State.state)
                     print("---------------------")
