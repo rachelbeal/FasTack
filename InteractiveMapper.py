@@ -80,11 +80,13 @@ fig.add_trace(go.Scattermapbox(
     lat=weather_df.lat,
     mode='markers',
     text=weather_df.wind,
-    marker=Marker(
-        size=2,
-        cmax=20,
-        cmin=0,
-        color=weather_df.wind)))
+    marker=dict(
+        size = 5,
+        cmax = 20,
+        cmin =0,
+        opacity = 0.1,
+        color = weather_df.wind)))
+
 
 fig.add_trace(go.Scattermapbox(
     lon=racemap_df.lon,
