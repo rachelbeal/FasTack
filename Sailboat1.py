@@ -183,32 +183,32 @@ class Agent:
         self.steps = 0
         self.time = 0
 
-    def play(self, rounds=10):
+    def play(self, rounds=10, verbose=False):
         self.rounds = rounds
         if rounds > 1:
             self.trainingrounds = rounds
         i = 0
         while i < rounds:
-            print('----------------------------------')
-            print('ROUND: {}'.format(i))
-            print('----------------------------------\n')
             # to the end of game back propagate reward
             if self.State.isEnd:
                 # back propagate
-                #reward = self.State.giveReward() + self.windPenalty / 100
+                # reward = self.State.giveReward() + self.windPenalty / 100
                 reward = self.State.giveReward() - min(self.time * 10, self.State.reward - 10)
-                #reward = self.State.giveReward()
+                # reward = self.State.giveReward()
                 # explicitly assign end state to reward values
                 self.state_values[self.State.state] = reward  # this is optional
+                print(' ')
+                print('----------------------------------')
+                print('ROUND: {}'.format(i))
+                print('----------------------------------\n')
                 print("Game End Reward", reward)
                 for s in reversed(self.states):
                     reward = self.state_values[s] + self.lr * (reward - self.state_values[s])
                     self.state_values[s] = reward
                 self.best_time = min(self.best_time, self.time)
-                print(self.best_time / 24)
-                print(self.steps)
-                print(self.windPenalty)
-                print(self.time / 24)
+                print("Best Time: ", self.best_time / 24)
+                print("Steps: ", self.steps)
+                print("Time: ", self.time / 24)
                 self.reset()
                 i += 1
             else:
@@ -216,13 +216,15 @@ class Agent:
                 # append trace
                 # if self.State.nxtPosition(action) not in self.states:
                 self.states.append(self.State.nxtPosition(action))
-                print("current position {} action {}".format(self.State.state, action))
+                if verbose:
+                    print("current position {} action {}".format(self.State.state, action))
                 # by taking the action, it reaches the next state
                 self.State = self.takeAction(action)
                 # mark is end
                 self.State.isEndFunc()
-                print("nxt state", self.State.state)
-                print("---------------------")
+                if verbose:
+                    print("nxt state", self.State.state)
+                    print("---------------------")
 
     def showRoute(self):
         print("Showing Route")
