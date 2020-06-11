@@ -4,12 +4,10 @@ matplotlib
 Cython
 h5py
 pandas
+plotly == 4.8.1
+chart_studio
 #git+https://github.com/matplotlib/basemap.git#egg=basemap
 git+https://github.com/Unidata/netcdf4-python#egg=netCDF4
 git+https://github.com/jswhit/pygrib.git#egg=pygrib
-plotly
 nbformat
-dash==0.21.1
-dash-renderer==0.13.0
-dash-html-components==0.11.0
-dash-core-components==0.23.0
+dash==1.12.0
