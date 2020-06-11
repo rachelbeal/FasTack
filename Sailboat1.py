@@ -210,6 +210,7 @@ class Agent:
                 print("Time: ", self.time / 24)
                 self.reset()
                 i += 1
+                self.exp_rate = self.exp_rate / (i/100.0)
             else:
                 action = self.chooseAction()
                 # append trace
@@ -221,8 +222,8 @@ class Agent:
                 self.State = self.takeAction(action)
                 # mark is end
                 self.State.isEndFunc()
-                if self.steps >= 20000 and self.best_time != float("inf"):
-                    self.State.isEnd = True
+                #if self.steps >= 20000 and self.best_time != float("inf"):
+                    #self.State.isEnd = True
                 if verbose:
                     print("nxt state", self.State.state)
                     print("---------------------")
@@ -261,13 +262,13 @@ class Agent:
 
 if __name__ == "__main__":
     lr_list = [0.9]
-    exp_rate_list = [0.6]
+    exp_rate_list = [0.9]
     for lr in lr_list:
         for exp_rate in exp_rate_list:
             ag = Agent(lr, exp_rate)
             print(start_i)
             print(start_j)
-            ag.play(10000)
+            ag.play(1000)
             # print(ag.showValues())
             ag.saveValues()
             print("Values are saved")
