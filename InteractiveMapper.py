@@ -66,7 +66,7 @@ board = np.zeros([BOARD_ROWS, BOARD_COLS])
 visited = []
 racemap = []
 
-route_file = './output/route_lr0.9_er0.6_r500.csv'
+route_file = './output/route_lr0.9_er0.6_r10000.csv'
 route = pd.read_csv(route_file)
 
 for i in range(0, len(route)-1):
