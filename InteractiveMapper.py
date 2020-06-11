@@ -66,9 +66,6 @@ board = np.zeros([BOARD_ROWS, BOARD_COLS])
 visited = []
 racemap = []
 
-state_file = "/Users/rachelbeal/PycharmProjects/FasTack/output/state_values_lr0.9_er0.6_r200_te05.csv"
-state = pd.read_csv(state_file)
-
 route_file = './output/route_lr0.9_er0.6_r500.csv'
 route = pd.read_csv(route_file)
 
