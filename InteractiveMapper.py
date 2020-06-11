@@ -9,10 +9,10 @@ import chart_studio.plotly as py
 import plotly.offline as py_off
 import plotly.graph_objs as go
 
-file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200608/gfs_0p25_1hr_00z')
-raw_lat  = np.array(file.variables['lat'][:])
-raw_lon  = np.array(file.variables['lon'][:])
-raw_wind = np.array(file.variables['gustsfc'][1,:,:])
+file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200609/gfs_0p25_1hr_00z')
+raw_lat = np.array(file.variables['lat'][:])
+raw_lon = np.array(file.variables['lon'][:])
+raw_wind = np.array(file.variables['gustsfc'][1, :, :])
 file.close()
 
 min_lat = 0
@@ -33,6 +33,17 @@ lon = raw_lon[lon_to_use].reshape(len(lon_to_use))
 
 wind = raw_wind[min_row:max_row+1, min_col:max_col+1]
 
+dead_min_row = 10
+dead_max_row = 120
+dead_min_col = 140
+dead_max_col = 200
+
+dead_wind = wind
+
+dead_wind[dead_min_row:dead_max_row, dead_min_col:dead_max_col] = 0
+
+wind = dead_wind
+
 wlat = []
 wlon = []
 wwind = []
@@ -45,7 +56,6 @@ for i in range(0, len(wind)):
 
 weather_data = {"lat": wlat, "lon": wlon, "wind": wwind}
 weather_df = pd.DataFrame(data=weather_data)
-weather_df
 
 BOARD_ROWS = len(wind)
 BOARD_COLS = len(wind[0])
@@ -59,7 +69,7 @@ racemap = []
 state_file = "/Users/rachelbeal/PycharmProjects/FasTack/output/state_values_lr0.9_er0.6_r200_te05.csv"
 state = pd.read_csv(state_file)
 
-route_file = '/Users/rachelbeal/PycharmProjects/FasTack/output/route_lr0.9_er0.6_r200.csv'
+route_file = './output/route_lr0.9_er0.6_r500.csv'
 route = pd.read_csv(route_file)
 
 for i in range(0, len(route)-1):
@@ -71,7 +81,8 @@ for i in range(0, len(route)-1):
             racemap.append((lati,lonj, val))
 
 racemap_df = pd.DataFrame(racemap, columns = ["lat", "lon", "val"])
-racemap_df
+
+mapbox_access_token = open("mapbox_key.txt").read()
 
 fig = go.Figure()
 
@@ -99,7 +110,9 @@ fig.update_layout(
         'center': {'lon': 200, 'lat': 25},
         'style': "open-street-map",
         'center': {'lon': 200, 'lat': 25},
-        'zoom': 1})
+        'zoom': 1,
+        'accesstoken': mapbox_access_token
+    })
 
 fig.update_layout(geo=dict(lonaxis=dict(
     showgrid=True,
@@ -116,4 +129,4 @@ fig.update_layout(geo=dict(lonaxis=dict(
 
 # To be able to see the plot while using pycharm
 # fig.write_image('C:/Users/user/Desktop/test.png')
-fig.show()
+#fig.show()
