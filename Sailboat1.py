@@ -151,7 +151,7 @@ class Agent:
         mx_nxt_reward = 0
         action = ""
         self.steps = self.steps + 1
-        if self.steps >= 300000 and self.best_time != float("inf"):
+        if self.steps >= 20000 and self.best_time != float("inf"):
             self.State.isEnd = True
         self.windPenalty = self.windPenalty + (self.State.state[2] - wind.max())
         self.time = self.time + (1 / self.State.state[2]) * 0.25
