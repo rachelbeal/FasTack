@@ -5,7 +5,7 @@ from mpl_toolkits.basemap import Basemap
 import netCDF4
 import pandas as pd
 
-file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200609/gfs_0p25_1hr_00z')
+file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200611/gfs_0p25_1hr_00z')
 raw_lat = np.array(file.variables['lat'][:])
 raw_lon = np.array(file.variables['lon'][:])
 raw_wind = np.array(file.variables['gustsfc'][1, :, :])
@@ -39,16 +39,16 @@ lon_fin = 360 - 157.75
 fin_i = int(np.argwhere(lat == lat_fin))
 fin_j = int(np.argwhere(lon == lon_fin))
 
-dead_min_row = 10
-dead_max_row = 120
-dead_min_col = 140
-dead_max_col = 200
+#dead_min_row = 100
+#dead_max_row = 190
+#dead_min_col = 170
+#dead_max_col = 190
 
-dead_wind = wind
+#dead_wind = wind
 
-dead_wind[dead_min_row:dead_max_row, dead_min_col:dead_max_col] = 0.1
+#dead_wind[dead_min_row:dead_max_row, dead_min_col:dead_max_col] = 0.1
 
-wind = dead_wind
+#wind = dead_wind
 
 # global variables
 BOARD_ROWS = len(wind)
@@ -123,7 +123,7 @@ class State:
 
 class Agent:
 
-    def __init__(self, lr, exp_rate):
+    def __init__(self, lr, exp_rate, exp_decay=False):
         self.states = []
         self.actions = ["down", "up", "right", "left"]
         self.State = State()
@@ -139,6 +139,7 @@ class Agent:
         self.steps = 0
         self.time = 0
         self.best_time = float("inf")
+        self.exp_decay = exp_decay
 
         # initial state reward
         self.state_values = {}
@@ -210,7 +211,8 @@ class Agent:
                 print("Time: ", self.time / 24)
                 self.reset()
                 i += 1
-                self.exp_rate = self.exp_rate / (i/100.0)
+                if self.exp_decay:
+                    self.exp_rate = self.exp_rate / (i/100.0)
             else:
                 action = self.chooseAction()
                 # append trace
@@ -222,8 +224,8 @@ class Agent:
                 self.State = self.takeAction(action)
                 # mark is end
                 self.State.isEndFunc()
-                #if self.steps >= 20000 and self.best_time != float("inf"):
-                    #self.State.isEnd = True
+                if self.steps >= 500000 and self.best_time != float("inf"):
+                    self.State.isEnd = True
                 if verbose:
                     print("nxt state", self.State.state)
                     print("---------------------")
@@ -261,14 +263,14 @@ class Agent:
 
 
 if __name__ == "__main__":
-    lr_list = [0.9]
-    exp_rate_list = [0.9]
+    lr_list = [0.7]
+    exp_rate_list = [0.6]
     for lr in lr_list:
         for exp_rate in exp_rate_list:
             ag = Agent(lr, exp_rate)
             print(start_i)
             print(start_j)
-            ag.play(1000)
+            ag.play(500)
             # print(ag.showValues())
             ag.saveValues()
             print("Values are saved")
