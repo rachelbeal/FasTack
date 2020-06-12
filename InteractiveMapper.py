@@ -9,7 +9,7 @@ import chart_studio.plotly as py
 import plotly.offline as py_off
 import plotly.graph_objs as go
 
-file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200609/gfs_0p25_1hr_00z')
+file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200611/gfs_0p25_1hr_00z')
 raw_lat = np.array(file.variables['lat'][:])
 raw_lon = np.array(file.variables['lon'][:])
 raw_wind = np.array(file.variables['gustsfc'][1, :, :])
@@ -33,16 +33,17 @@ lon = raw_lon[lon_to_use].reshape(len(lon_to_use))
 
 wind = raw_wind[min_row:max_row+1, min_col:max_col+1]
 
-dead_min_row = 10
-dead_max_row = 120
-dead_min_col = 140
-dead_max_col = 200
+#dead_min_row = 100
+#dead_max_row = 190
+#dead_min_col = 170
+#dead_max_col = 190
 
-dead_wind = wind
 
-dead_wind[dead_min_row:dead_max_row, dead_min_col:dead_max_col] = 0
+#dead_wind = wind
 
-wind = dead_wind
+#dead_wind[dead_min_row:dead_max_row, dead_min_col:dead_max_col] = 0
+
+#wind = dead_wind
 
 wlat = []
 wlon = []
@@ -66,7 +67,7 @@ board = np.zeros([BOARD_ROWS, BOARD_COLS])
 visited = []
 racemap = []
 
-route_file = './output/route_lr0.9_er0.6_r10000.csv'
+route_file = './output/route_lr0.7_er0.6_r500.csv'
 route = pd.read_csv(route_file)
 
 for i in range(0, len(route)-1):
@@ -126,4 +127,4 @@ fig.update_layout(geo=dict(lonaxis=dict(
 
 # To be able to see the plot while using pycharm
 # fig.write_image('C:/Users/user/Desktop/test.png')
-#fig.show()
+# fig.show()
