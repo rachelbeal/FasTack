@@ -1,4 +1,4 @@
-import plotly.graph_objects as go # or plotly.express as px
+import plotly.graph_objects as go  # or plotly.express as px
 from InteractiveMapper import fig
 import dash
 import dash_core_components as dcc
@@ -9,4 +9,5 @@ app.layout = html.Div([
     dcc.Graph(figure=fig, id='sail-routes')
 ])
 
-app.run_server(host="0.0.0.0", port=8050, ssl_context=('cert.pem', 'key.pem'))
+app.run_server(host="0.0.0.0", port=8050, ssl_context=(
+'/etc/letsencrypt/live/fastack.app/fullchain.pem', '/etc/letsencrypt/live/fastack.app/privkey.pem'))
