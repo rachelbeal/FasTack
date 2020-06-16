@@ -3,7 +3,7 @@ import netCDF4
 import pandas as pd
 import math
 
-TIMEPENALTY = 2000
+TIMEPENALTY = 3000
 
 print("reading gribs")
 file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200614/gfs_0p25_1hr_00z')
@@ -11,8 +11,8 @@ raw_lat = np.array(file.variables['lat'][:])
 raw_lon = np.array(file.variables['lon'][:])
 print("still reading gribs")
 raw_wind = np.array(file.variables['gustsfc'][1, :, :])
-raw_wind_u = np.array(file.variables['ugrd10m'][1,:,:])
-raw_wind_v = np.array(file.variables['vgrd10m'][1,:,:])
+raw_wind_u = np.array(file.variables['ugrd10m'][1, :, :])
+raw_wind_v = np.array(file.variables['vgrd10m'][1, :, :])
 file.close()
 print("done reading gribs!")
 
@@ -33,13 +33,13 @@ lat = raw_lat[lat_to_use].reshape(len(lat_to_use))
 lon = raw_lon[lon_to_use].reshape(len(lon_to_use))
 
 wind = raw_wind[min_row:max_row + 1, min_col:max_col + 1]
-wind_u = raw_wind_u[min_row:max_row+1, min_col:max_col+1]
-wind_v = raw_wind_v[min_row:max_row+1, min_col:max_col+1]
+wind_u = raw_wind_u[min_row:max_row + 1, min_col:max_col + 1]
+wind_v = raw_wind_v[min_row:max_row + 1, min_col:max_col + 1]
 
 wind_angle = np.zeros([len(wind), len(wind[0])])
 
 for i in range(0, len(wind_u)):
-    for j in range (0, len(wind_v)):
+    for j in range(0, len(wind_v)):
         wind_angle[i][j] = 180 + math.degrees(math.atan2(raw_wind_u[i][j], raw_wind_v[i][j]))
 
 lat_start = 33.75
@@ -170,9 +170,9 @@ class State:
                     self.angle_off_wind = self.angle_off_wind - 180
 
                 # if self.angle_off_wind < 45:
-                    # self.boat_speed = 0.001
+                # self.boat_speed = 0.001
                 # else:
-                    # self.boat_speed = wind_speed
+                # self.boat_speed = wind_speed
 
                 # self.time = self.time + (1 / self.boat_speed) * 0.25
                 if self.angle_off_wind >= 45:
@@ -257,7 +257,7 @@ class Agent:
         return action
 
     def takeAction(self, action):
-        old_position =  self.State.state
+        old_position = self.State.state
         position = self.State.nxtPosition(action)
         self.boat_speed = position[2]
         if old_position != position:
@@ -342,7 +342,7 @@ class Agent:
     def showRoute(self):
         print("Showing Route")
         self.lr = 0
-        self.exp_rate = 0.05
+        self.exp_rate = 0.001
         self.record = True
         self.play(1)
         grid = np.zeros([BOARD_ROWS, BOARD_COLS])
@@ -351,15 +351,15 @@ class Agent:
             j = route_tuple[1]
             grid[i][j] = s
         df = pd.DataFrame(grid)
-        df.to_csv("./output/wwinvec_parmtest/route_lr{}_er{}_r{}_gamma{}.csv".format(self.trainlr, self.trainexp_rate, self.trainingrounds, self.decay_gamma),
+        df.to_csv("./output/wwinvec_parmtest/route_lr{}_er{}_r{}_gamma{}.csv".format(self.trainlr, self.trainexp_rate,
+                                                                                     self.trainingrounds,
+                                                                                     self.decay_gamma),
                   index=False)
         # tab_times.append(self.time / 24)
         # tab_lr.append(self.trainlr)
         # tab_exp_rate.append(self.trainexp_rate)
         # tab_rounds.append(self.trainingrounds)
         # tab_decay_gamma.append(self.decay_gamma)>
-
-
 
     def showValues(self):
         for i in range(0, BOARD_ROWS):
@@ -373,20 +373,24 @@ class Agent:
     def saveValues(self):
         df = pd.Series(ag.Q_values).reset_index()
         df.columns = ['i', 'j', 'wind', 'value']
-        df.to_csv("./output/wwinvec_parmtest/Q_values_lr{}_er{}_r{}_gamma{}.csv".format(self.trainlr, self.trainexp_rate, self.rounds, self.decay_gamma),
-                  index=False)
-        return
-
-    def saveTimes(self):
-        dict = {'lr': tab_lr, 'exp_rate': tab_exp_rate, 'rounds': tab_rounds, 'gamma_decay': tab_decay_gamma, 'time': tab_times, 'steps': tab_steps}
-        df = pd.DataFrame(dict)
-        df.to_csv("./output/wwinvec_parmtest/times_r{}.csv".format(self.trainingrounds),
+        df.to_csv(
+            "./output/wwinvec_parmtest/Q_values_lr{}_er{}_r{}_gamma{}.csv".format(self.trainlr, self.trainexp_rate,
+                                                                                  self.rounds, self.decay_gamma),
             index=False)
         return
 
+    def saveTimes(self):
+        dict = {'lr': tab_lr, 'exp_rate': tab_exp_rate, 'rounds': tab_rounds, 'gamma_decay': tab_decay_gamma,
+                'time': tab_times, 'steps': tab_steps}
+        df = pd.DataFrame(dict)
+        df.to_csv("./output/wwinvec_parmtest/times_r{}.csv".format(self.trainingrounds),
+                  index=False)
+        return
+
+
 if __name__ == "__main__":
-    lr_list = [0.6]
-    exp_rate_list = [0.9, 0.8, 0.7, 0.6]
+    lr_list = [0.5, 0.4]
+    exp_rate_list = [0.9, 0.8, 0.7]
     decay_gamma_list = [0.95]
     for lr in lr_list:
         for exp_rate in exp_rate_list:
@@ -396,7 +400,7 @@ if __name__ == "__main__":
                 print(start_j)
                 # print("initial Q-values ... \n")
                 # print(ag.Q_values)
-                ag.play(1000, verbose=False)
+                ag.play(5000, verbose=False)
                 # print("latest Q-values ... \n")
                 # print(ag.Q_values)
                 ag.saveValues()
@@ -404,6 +408,3 @@ if __name__ == "__main__":
                 ag.showRoute()
                 print("Showing route")
     ag.saveTimes()
-
-
-
