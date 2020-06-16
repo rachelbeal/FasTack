@@ -3,7 +3,7 @@ import netCDF4
 import pandas as pd
 import math
 
-TIMEPENALTY = 1
+TIMEPENALTY = 2000
 
 print("reading gribs")
 file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200614/gfs_0p25_1hr_00z')
@@ -94,6 +94,9 @@ class State:
         self.isEnd = False
         self.determine = DETERMINISTIC
         self.reward = 1000000
+        self.boat_dir = 0
+        self.angle_off_wind = 0
+        self.boat_speed = 0
 
     def giveReward(self):
         if (self.state[0], self.state[1]) == WIN_LOC:
@@ -134,8 +137,48 @@ class State:
 
         if (nxtPos[0] >= 0) and (nxtPos[0] <= (BOARD_ROWS - 1)):
             if (nxtPos[1] >= 0) and (nxtPos[1] <= (BOARD_COLS - 1)):
-                nxtState = (nxtPos[0], nxtPos[1], wind[nxtPos[0]][nxtPos[1]])
-                return nxtState
+                if action == "north":
+                    self.boat_dir = 90
+                elif action == "northeast":
+                    self.boat_dir = 45
+                elif action == "northwest":
+                    self.boat_dir = 135
+                elif action == "south":
+                    self.boat_dir = 270
+                elif action == "southeast":
+                    self.boat_dir = 315
+                elif action == "southwest":
+                    self.boat_dir = 225
+                elif action == "west":
+                    self.boat_dir = 180
+                else:
+                    self.boat_dir = 0
+
+                boati = nxtPos[0]
+                boatj = nxtPos[1]
+                # wind_speed = nxtPos[2]
+
+                self.angle_off_wind = self.boat_dir - wind_angle[boati][boatj]
+
+                if self.angle_off_wind <= -180:
+                    self.angle_off_wind = self.angle_off_wind + 360
+
+                if -180 < self.angle_off_wind < 0:
+                    self.angle_off_wind = self.angle_off_wind + 180
+
+                if self.angle_off_wind > 180:
+                    self.angle_off_wind = self.angle_off_wind - 180
+
+                # if self.angle_off_wind < 45:
+                    # self.boat_speed = 0.001
+                # else:
+                    # self.boat_speed = wind_speed
+
+                # self.time = self.time + (1 / self.boat_speed) * 0.25
+                if self.angle_off_wind >= 45:
+                    nxtState = (nxtPos[0], nxtPos[1], wind[nxtPos[0]][nxtPos[1]])
+                    return nxtState
+
         return self.state
 
     def showBoard(self):
@@ -178,10 +221,7 @@ class Agent:
         self.route = []
         self.record = False
         self.steps = 0
-        self.boat_speed = 0
         self.time = 0
-        self.boat_dir = 0
-        self.angle_off_wind = 0
         self.best_time = float("inf")
 
         # initial Q values
@@ -196,7 +236,6 @@ class Agent:
         # choose action with most expected value
         mx_nxt_reward = 0
         action = ""
-        self.steps = self.steps + 1
 
         if np.random.uniform(0, 1) <= self.exp_rate:
             # print("Random")
@@ -218,47 +257,13 @@ class Agent:
         return action
 
     def takeAction(self, action):
+        old_position =  self.State.state
         position = self.State.nxtPosition(action)
+        self.boat_speed = position[2]
+        if old_position != position:
+            self.time = self.time + (1 / self.boat_speed) * 0.25
+            self.steps = self.steps + 1
         # update State
-        if action == "north":
-            self.boat_dir = 90
-        elif action == "northeast":
-            self.boat_dir = 45
-        elif action == "northwest":
-            self.boat_dir = 135
-        elif action == "south":
-            self.boat_dir = 270
-        elif action == "southeast":
-            self.boat_dir = 315
-        elif action == "southwest":
-            self.boat_dir = 225
-        elif action == "west":
-            self.boat_dir = 180
-        else:
-            self.boat_dir = 0
-
-        boati = position[0]
-        boatj = position[1]
-        wind_speed = position[2]
-
-        self.angle_off_wind = self.boat_dir - wind_angle[boati][boatj]
-
-        if self.angle_off_wind <= -180:
-            self.angle_off_wind = self.angle_off_wind + 360
-
-        if -180 < self.angle_off_wind < 0:
-            self.angle_off_wind = self.angle_off_wind + 180
-
-        if self.angle_off_wind > 180:
-            self.angle_off_wind = self.angle_off_wind - 180
-
-        if self.angle_off_wind < 45:
-            self.boat_speed = 0.001
-        else:
-            self.boat_speed = wind_speed
-
-        self.time = self.time + (1 / self.boat_speed) * 0.25
-
         return State(state=position)
 
     def reset(self):
@@ -280,7 +285,7 @@ class Agent:
             if self.State.isEnd:
                 # back propagate
                 # reward = self.State.giveReward()
-                reward = self.State.giveReward() # - min(self.time * TIMEPENALTY, self.State.reward - 10)
+                reward = self.State.giveReward() - min(self.time * TIMEPENALTY, self.State.reward - 10)
                 #  = self.State.giveReward() -  self.time * TIMEPENALTY
                 reward = max(0, reward)
                 for a in self.actions:
@@ -320,12 +325,12 @@ class Agent:
                 self.State.isEndFunc()
 
                 # Give reward during training
-                s = self.State.state
-                current_q_value = self.Q_values[s][action]
-                reward_time = (250 - (1/self.boat_speed) * 0.25) * 0.001
-                reward = current_q_value + self.trainlr * (self.decay_gamma * reward_time - current_q_value)
-                self.reward += reward
-                self.Q_values[s][action] = reward
+                # s = self.State.state
+                # current_q_value = self.Q_values[s][action]
+                # reward_time = (250 - (1/self.boat_speed) * 0.25) * 0.001
+                # reward = current_q_value + self.trainlr * (self.decay_gamma * reward_time - current_q_value)
+                # self.reward += reward
+                # self.Q_values[s][action] = reward
 
                 if self.steps >= 500000 and self.best_time != float("inf"):
                     self.State.isEnd = True
@@ -337,7 +342,7 @@ class Agent:
     def showRoute(self):
         print("Showing Route")
         self.lr = 0
-        self.exp_rate = 0.1
+        self.exp_rate = 0.05
         self.record = True
         self.play(1)
         grid = np.zeros([BOARD_ROWS, BOARD_COLS])
@@ -346,7 +351,7 @@ class Agent:
             j = route_tuple[1]
             grid[i][j] = s
         df = pd.DataFrame(grid)
-        df.to_csv("./output/wwinvec/route_lr{}_er{}_r{}_gamma{}_0.csv".format(self.trainlr, self.trainexp_rate, self.trainingrounds, self.decay_gamma),
+        df.to_csv("./output/wwinvec_parmtest/route_lr{}_er{}_r{}_gamma{}.csv".format(self.trainlr, self.trainexp_rate, self.trainingrounds, self.decay_gamma),
                   index=False)
         # tab_times.append(self.time / 24)
         # tab_lr.append(self.trainlr)
@@ -368,20 +373,20 @@ class Agent:
     def saveValues(self):
         df = pd.Series(ag.Q_values).reset_index()
         df.columns = ['i', 'j', 'wind', 'value']
-        df.to_csv("./output/wwinvec/Q_values_lr{}_er{}_r{}_gamma{}_0.csv".format(self.trainlr, self.trainexp_rate, self.rounds, self.decay_gamma),
+        df.to_csv("./output/wwinvec_parmtest/Q_values_lr{}_er{}_r{}_gamma{}.csv".format(self.trainlr, self.trainexp_rate, self.rounds, self.decay_gamma),
                   index=False)
         return
 
     def saveTimes(self):
         dict = {'lr': tab_lr, 'exp_rate': tab_exp_rate, 'rounds': tab_rounds, 'gamma_decay': tab_decay_gamma, 'time': tab_times, 'steps': tab_steps}
         df = pd.DataFrame(dict)
-        df.to_csv("./output/wwinvec/times_r{}_0.csv".format(self.trainingrounds),
+        df.to_csv("./output/wwinvec_parmtest/times_r{}.csv".format(self.trainingrounds),
             index=False)
         return
 
 if __name__ == "__main__":
     lr_list = [0.6]
-    exp_rate_list = [0.9]
+    exp_rate_list = [0.9, 0.8, 0.7, 0.6]
     decay_gamma_list = [0.95]
     for lr in lr_list:
         for exp_rate in exp_rate_list:
@@ -391,7 +396,7 @@ if __name__ == "__main__":
                 print(start_j)
                 # print("initial Q-values ... \n")
                 # print(ag.Q_values)
-                ag.play(500, verbose=False)
+                ag.play(1000, verbose=False)
                 # print("latest Q-values ... \n")
                 # print(ag.Q_values)
                 ag.saveValues()
