@@ -6,7 +6,7 @@ import math
 TIMEPENALTY = 3000
 
 print("reading gribs")
-file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200614/gfs_0p25_1hr_00z')
+file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200615/gfs_0p25_1hr_00z')
 raw_lat = np.array(file.variables['lat'][:])
 raw_lon = np.array(file.variables['lon'][:])
 print("still reading gribs")
@@ -389,8 +389,8 @@ class Agent:
 
 
 if __name__ == "__main__":
-    lr_list = [0.5, 0.4]
-    exp_rate_list = [0.9, 0.8, 0.7]
+    lr_list = [0.5]
+    exp_rate_list = [0.8]
     decay_gamma_list = [0.95]
     for lr in lr_list:
         for exp_rate in exp_rate_list:
@@ -400,7 +400,7 @@ if __name__ == "__main__":
                 print(start_j)
                 # print("initial Q-values ... \n")
                 # print(ag.Q_values)
-                ag.play(5000, verbose=False)
+                ag.play(10000, verbose=False)
                 # print("latest Q-values ... \n")
                 # print(ag.Q_values)
                 ag.saveValues()
