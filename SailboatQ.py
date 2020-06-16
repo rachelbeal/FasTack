@@ -1,14 +1,20 @@
 import numpy as np
 import netCDF4
 import pandas as pd
+import math
 
-TIMEPENALTY = 200
+TIMEPENALTY = 1
 
+print("reading gribs")
 file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200614/gfs_0p25_1hr_00z')
 raw_lat = np.array(file.variables['lat'][:])
 raw_lon = np.array(file.variables['lon'][:])
+print("still reading gribs")
 raw_wind = np.array(file.variables['gustsfc'][1, :, :])
+raw_wind_u = np.array(file.variables['ugrd10m'][1,:,:])
+raw_wind_v = np.array(file.variables['vgrd10m'][1,:,:])
 file.close()
+print("done reading gribs!")
 
 min_lat = 0
 max_lat = 50
@@ -27,6 +33,14 @@ lat = raw_lat[lat_to_use].reshape(len(lat_to_use))
 lon = raw_lon[lon_to_use].reshape(len(lon_to_use))
 
 wind = raw_wind[min_row:max_row + 1, min_col:max_col + 1]
+wind_u = raw_wind_u[min_row:max_row+1, min_col:max_col+1]
+wind_v = raw_wind_v[min_row:max_row+1, min_col:max_col+1]
+
+wind_angle = np.zeros([len(wind), len(wind[0])])
+
+for i in range(0, len(wind_u)):
+    for j in range (0, len(wind_v)):
+        wind_angle[i][j] = 180 + math.degrees(math.atan2(raw_wind_u[i][j], raw_wind_v[i][j]))
 
 lat_start = 33.75
 lon_start = 241.75
@@ -39,23 +53,23 @@ lon_fin = 360 - 157.75
 fin_i = int(np.argwhere(lat == lat_fin))
 fin_j = int(np.argwhere(lon == lon_fin))
 
-dead_wind = wind*1
-
-dead_min_row = 65
-dead_max_row = 90
-dead_min_col = 110
-dead_max_col = 115
-
-dead_wind[dead_min_row:dead_max_row, dead_min_col:dead_max_col] = 0.1
-
-dead_min_row = 85
-dead_max_row = 105
-dead_min_col = 125
-dead_max_col = 130
-
-dead_wind[dead_min_row:dead_max_row, dead_min_col:dead_max_col] = 0.1
-
-wind = dead_wind
+# dead_wind = wind*1
+#
+# dead_min_row = 65
+# dead_max_row = 90
+# dead_min_col = 110
+# dead_max_col = 115
+#
+# dead_wind[dead_min_row:dead_max_row, dead_min_col:dead_max_col] = 0.001
+#
+# dead_min_row = 85
+# dead_max_row = 105
+# dead_min_col = 125
+# dead_max_col = 130
+#
+# dead_wind[dead_min_row:dead_max_row, dead_min_col:dead_max_col] = 0.1
+#
+# wind = dead_wind
 
 # global variables
 BOARD_ROWS = len(wind)
@@ -70,6 +84,7 @@ tab_lr = []
 tab_exp_rate = []
 tab_rounds = []
 tab_decay_gamma = []
+tab_steps = []
 
 
 class State:
@@ -78,7 +93,7 @@ class State:
         self.state = state
         self.isEnd = False
         self.determine = DETERMINISTIC
-        self.reward = 100000
+        self.reward = 1000000
 
     def giveReward(self):
         if (self.state[0], self.state[1]) == WIN_LOC:
@@ -147,6 +162,7 @@ class Agent:
         self.actions = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest"]
         self.State = State()
         self.isEnd = self.State.isEnd
+        self.reward = 0
         # self.lr = 0.7
         # self.exp_rate = 0.6
         # self.decay_gamma = 0.9
@@ -162,7 +178,10 @@ class Agent:
         self.route = []
         self.record = False
         self.steps = 0
+        self.boat_speed = 0
         self.time = 0
+        self.boat_dir = 0
+        self.angle_off_wind = 0
         self.best_time = float("inf")
 
         # initial Q values
@@ -178,7 +197,6 @@ class Agent:
         mx_nxt_reward = 0
         action = ""
         self.steps = self.steps + 1
-        self.time = self.time + (1 / self.State.state[2]) * 0.25
 
         if np.random.uniform(0, 1) <= self.exp_rate:
             # print("Random")
@@ -202,6 +220,45 @@ class Agent:
     def takeAction(self, action):
         position = self.State.nxtPosition(action)
         # update State
+        if action == "north":
+            self.boat_dir = 90
+        elif action == "northeast":
+            self.boat_dir = 45
+        elif action == "northwest":
+            self.boat_dir = 135
+        elif action == "south":
+            self.boat_dir = 270
+        elif action == "southeast":
+            self.boat_dir = 315
+        elif action == "southwest":
+            self.boat_dir = 225
+        elif action == "west":
+            self.boat_dir = 180
+        else:
+            self.boat_dir = 0
+
+        boati = position[0]
+        boatj = position[1]
+        wind_speed = position[2]
+
+        self.angle_off_wind = self.boat_dir - wind_angle[boati][boatj]
+
+        if self.angle_off_wind <= -180:
+            self.angle_off_wind = self.angle_off_wind + 360
+
+        if -180 < self.angle_off_wind < 0:
+            self.angle_off_wind = self.angle_off_wind + 180
+
+        if self.angle_off_wind > 180:
+            self.angle_off_wind = self.angle_off_wind - 180
+
+        if self.angle_off_wind < 45:
+            self.boat_speed = 0.001
+        else:
+            self.boat_speed = wind_speed
+
+        self.time = self.time + (1 / self.boat_speed) * 0.25
+
         return State(state=position)
 
     def reset(self):
@@ -211,6 +268,7 @@ class Agent:
         self.windPenalty = 0
         self.steps = 0
         self.time = 0
+        self.reward = 0
 
     def play(self, rounds=10, verbose=False):
         self.rounds = rounds
@@ -222,7 +280,8 @@ class Agent:
             if self.State.isEnd:
                 # back propagate
                 # reward = self.State.giveReward()
-                reward = self.State.giveReward() - min(self.time * TIMEPENALTY, self.State.reward - 10)
+                reward = self.State.giveReward() # - min(self.time * TIMEPENALTY, self.State.reward - 10)
+                #  = self.State.giveReward() -  self.time * TIMEPENALTY
                 reward = max(0, reward)
                 for a in self.actions:
                     self.Q_values[self.State.state][a] = reward
@@ -231,6 +290,7 @@ class Agent:
                 print('ROUND: {}'.format(i))
                 print('----------------------------------\n')
                 print("Game End Reward", reward)
+                print("Total Reward", self.reward)
                 for s in reversed(self.states):
                     current_q_value = self.Q_values[s[0]][s[1]]
                     reward = current_q_value + self.trainlr * (self.decay_gamma * reward - current_q_value)
@@ -245,6 +305,7 @@ class Agent:
                     tab_exp_rate.append(self.trainexp_rate)
                     tab_rounds.append(self.trainingrounds)
                     tab_decay_gamma.append(self.decay_gamma)
+                    tab_steps.append(self.steps)
                 self.reset()
                 i += 1
             else:
@@ -258,6 +319,14 @@ class Agent:
                 # mark is end
                 self.State.isEndFunc()
 
+                # Give reward during training
+                s = self.State.state
+                current_q_value = self.Q_values[s][action]
+                reward_time = (250 - (1/self.boat_speed) * 0.25) * 0.001
+                reward = current_q_value + self.trainlr * (self.decay_gamma * reward_time - current_q_value)
+                self.reward += reward
+                self.Q_values[s][action] = reward
+
                 if self.steps >= 500000 and self.best_time != float("inf"):
                     self.State.isEnd = True
                 if verbose:
@@ -268,7 +337,7 @@ class Agent:
     def showRoute(self):
         print("Showing Route")
         self.lr = 0
-        self.exp_rate = 0.05
+        self.exp_rate = 0.1
         self.record = True
         self.play(1)
         grid = np.zeros([BOARD_ROWS, BOARD_COLS])
@@ -277,7 +346,7 @@ class Agent:
             j = route_tuple[1]
             grid[i][j] = s
         df = pd.DataFrame(grid)
-        df.to_csv("./output/parmtest/route_lr{}_er{}_r{}_gamma{}.csv".format(self.trainlr, self.trainexp_rate, self.trainingrounds, self.decay_gamma),
+        df.to_csv("./output/wwinvec/route_lr{}_er{}_r{}_gamma{}_0.csv".format(self.trainlr, self.trainexp_rate, self.trainingrounds, self.decay_gamma),
                   index=False)
         # tab_times.append(self.time / 24)
         # tab_lr.append(self.trainlr)
@@ -299,21 +368,21 @@ class Agent:
     def saveValues(self):
         df = pd.Series(ag.Q_values).reset_index()
         df.columns = ['i', 'j', 'wind', 'value']
-        df.to_csv("./output/parmtest/Q_values_lr{}_er{}_r{}_gamma{}.csv".format(self.trainlr, self.trainexp_rate, self.rounds, self.decay_gamma),
+        df.to_csv("./output/wwinvec/Q_values_lr{}_er{}_r{}_gamma{}_0.csv".format(self.trainlr, self.trainexp_rate, self.rounds, self.decay_gamma),
                   index=False)
         return
 
     def saveTimes(self):
-        dict = {'lr': tab_lr, 'exp_rate': tab_exp_rate, 'rounds': tab_rounds, 'gamma_decay': tab_decay_gamma, 'time': tab_times}
+        dict = {'lr': tab_lr, 'exp_rate': tab_exp_rate, 'rounds': tab_rounds, 'gamma_decay': tab_decay_gamma, 'time': tab_times, 'steps': tab_steps}
         df = pd.DataFrame(dict)
-        df.to_csv("./output/parmtest/times_r{}.csv".format(self.trainingrounds),
+        df.to_csv("./output/wwinvec/times_r{}_0.csv".format(self.trainingrounds),
             index=False)
         return
 
 if __name__ == "__main__":
-    lr_list = [0.9, 0.8, 0.7, 0.6]
-    exp_rate_list = [0.7, 0.6, 0.5]
-    decay_gamma_list = [0.95, 0.9, 0.8, 0.7]
+    lr_list = [0.6]
+    exp_rate_list = [0.9]
+    decay_gamma_list = [0.95]
     for lr in lr_list:
         for exp_rate in exp_rate_list:
             for decay_gamma in decay_gamma_list:
