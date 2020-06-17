@@ -14,9 +14,7 @@ import plotly.graph_objs as go
 file = netCDF4.Dataset('https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25_1hr/gfs20200614/gfs_0p25_1hr_00z')
 raw_lat  = np.array(file.variables['lat'][:])
 raw_lon  = np.array(file.variables['lon'][:])
-print("reading gribs")
 raw_wind = np.array(file.variables['gustsfc'][1,:,:])
-print("done reading gribs")
 file.close()
 
 # set boundaries for race course
