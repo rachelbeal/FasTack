@@ -36,7 +36,7 @@ PlottingWorkbook.ipynb includes additional code for both route and weather data 
 
 
 
-## Notes on code use
+## Notes on Code Use
 
 All required packages are included in requirements.txt. Note that latest versions of the [netCDF4](https://github.com/Unidata/netcdf4-python "netCDF4") and [pygrib](https://github.com/jswhit/pygrib "pygrib") are best installed by cloning the GitHub repository and follwing the "Quick Start" instructions for installation (also true for ec2 instance). 
 
