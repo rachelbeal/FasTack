@@ -4,7 +4,7 @@ FasTack was completed as a project for the Insight Data Science Fellowship progr
 
 FasTack finds the best route between start and end coordinates for sailing races based on wind conditions from GFS data. The code is currently set up to optimize the route used by the Transpacific Yacht Race between the Pt. Fermin buoy (33.70˚N, 118.29˚W) in San Pedro, CA and the Diamond Head buoy (21.25˚N, 157.81˚W) off the coast of Oahu, but could be adujsted for other race coordinates. The user can access up to date weather and route info on https://fastack.app:8050/ as in the output below.
 
-## ![Screen Shot 2020-06-21 at 10.55.54 PM](/Users/rachelbeal/Desktop/Screen Shot 2020-06-21 at 10.55.54 PM.png)
+![SampleRoute.png](https://github.com/rachelbeal/FasTack/blob/master/SampleRoute.png)
 
 
 
