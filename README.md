@@ -32,7 +32,7 @@ Note that only 10 days of weather data are available on the GrADS server, so the
 
 ## Data Visualization
 
-**PlottingWorkbook.ipynb** includes additional code for both route and weather data visualization. Note that wind vector visualization is not currently supported by the quiver function in plotly and can only be accomplished via [Basemap](https://github.com/matplotlib/basemap "Basemap"). 
+**PlottingWorkbook.ipynb** includes additional code for both route and weather data visualization. Note that wind vector visualization is not currently supported by the quiver function in plotly and can only be accomplished via [Basemap](https://github.com/matplotlib/basemap "Basemap"). To see function outputs, view this file with [Jupyter nbviewer](https://nbviewer.jupyter.org/github/rachelbeal/FasTack/blob/master/PlottingWorkbook.ipynb "nbviewer for PlottingWorkbook.ipynb").
 
 
 
