@@ -10,4 +10,4 @@ chart_studio
 git+https://github.com/Unidata/netcdf4-python#egg=netCDF4
 git+https://github.com/jswhit/pygrib.git#egg=pygrib
 nbformat
-dash==1.12.0
+dash==2.15.0
